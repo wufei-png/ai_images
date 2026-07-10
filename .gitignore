@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Local Colab notebook (use the .py script instead)
+controlnet_eight_legged_horse_comparison.ipynb
+.ipynb_checkpoints/
+
+# Generated images; keep only the reference input
+outputs/*
+!outputs/eight_legged_horse_reference.png
+
+*.safetensors
+.cache/
