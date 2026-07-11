@@ -30,6 +30,34 @@ export HF_HUB_DISABLE_XET=1
 
 基座权重使用 `variant="fp16"`（`*.fp16.safetensors`）。Prompt 已压到 CLIP 77 token 以内。
 
+### 模型下载说明
+
+权重**不在本仓库内**，默认缓存到 `~/.cache/huggingface/hub/`（可用 `HF_HOME` / `HUGGINGFACE_HUB_CACHE` 改路径）。
+
+**推荐**：直接跑脚本，首次 `from_pretrained` 会自动下载。
+
+**可选预下载**（网络不稳或想先拉齐权重时）：
+
+```bash
+export HF_ENDPOINT="https://hf-mirror.com"   # 可选
+export HF_HUB_DISABLE_XET=1                  # 可选
+
+# 基座（脚本用 fp16 safetensors）
+uv run hf download stable-diffusion-v1-5/stable-diffusion-v1-5 \
+  --include "model_index.json" "scheduler/*" "tokenizer/*" \
+  --include "unet/config.json" "unet/diffusion_pytorch_model.fp16.safetensors" \
+  --include "vae/config.json" "vae/diffusion_pytorch_model.fp16.safetensors" \
+  --include "text_encoder/config.json" "text_encoder/model.fp16.safetensors" \
+  --max-workers 1
+
+# ControlNet 1.1 + Annotators
+uv run hf download lllyasviel/control_v11p_sd15_lineart \
+  --include "config.json" "diffusion_pytorch_model.safetensors" --max-workers 1
+uv run hf download lllyasviel/control_v11p_sd15_scribble \
+  --include "config.json" "diffusion_pytorch_model.safetensors" --max-workers 1
+uv run hf download lllyasviel/Annotators --max-workers 1
+```
+
 ## 模型与参数
 
 | 角色                            | ID / 值                                                           |
