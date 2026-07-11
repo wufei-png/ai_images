@@ -12,10 +12,21 @@ dependencies = [
     "opencv-python-headless>=4.10.0",
     "pillow>=10.0.0",
     "safetensors>=0.4.0",
-    "torch>=2.4.0",
-    "torchvision>=0.19.0",
+    "socksio>=1.0.0",
+    # Driver 535 / CUDA 12.2：用 cu121 轮子，避免 PyPI 默认 CUDA 13 的 NCCL 冲突
+    "torch==2.5.1",
+    "torchvision==0.20.1",
     "transformers>=4.44.0",
 ]
 
 [tool.uv]
 package = false
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu121" }
+torchvision = { index = "pytorch-cu121" }

@@ -27,19 +27,24 @@ INPUT_PATH = OUT / "eight_legged_horse_reference.png"
 TARGET_W, TARGET_H = 768, 512
 SEED = 20260710
 BASE_MODEL = "stable-diffusion-v1-5/stable-diffusion-v1-5"
+# ControlNet 1.1（SD1.5 官方最新线）；两边同版本便于公平对比
+LINEART_CONTROLNET = "lllyasviel/control_v11p_sd15_lineart"
+SCRIBBLE_CONTROLNET = "lllyasviel/control_v11p_sd15_scribble"
+NUM_INFERENCE_STEPS = 30
+GUIDANCE_SCALE = 7.5
+CONDITIONING_SCALE = 1.1
 
 PROMPT = (
-    "full body three-quarter side view of a magnificent mythological horse with exactly eight distinct legs, "
-    "four forelegs attached at the chest and four hind legs attached at the hips, "
-    "all eight legs anatomically separate from root to hoof, all eight hooves clearly visible, "
-    "no legs attached under the middle belly, elegant equine anatomy, dynamic galloping pose, "
-    "realistic fantasy concept art, clean readable silhouette, detailed muscles, dramatic natural lighting"
+    "full body side view mythological horse with exactly eight distinct legs, "
+    "four forelegs at the chest and four hind legs at the hips, "
+    "all eight legs separate from root to hoof, all eight hooves visible, "
+    "no belly legs, elegant equine anatomy, galloping pose, fantasy concept art"
 )
 
 NEGATIVE_PROMPT = (
-    "four legs, five legs, six legs, seven legs, nine legs, ten legs, missing leg, fused legs, merged legs, "
-    "duplicated limb fragments, extra legs under the belly, hidden hooves, cropped legs, motion blur, "
-    "multiple horses, malformed anatomy, tangled limbs, text, labels, colored construction lines"
+    "four legs, six legs, missing leg, fused legs, merged legs, extra belly legs, "
+    "hidden hooves, multiple horses, malformed anatomy, tangled limbs, "
+    "wireframe, skeleton overlay, joint dots, orange lines, purple lines, text, labels"
 )
 
 
@@ -80,20 +85,28 @@ def run_controlnet(
     output_path: Path,
     device: str,
     dtype: torch.dtype,
-    conditioning_scale: float = 1.15,
+    conditioning_scale: float = CONDITIONING_SCALE,
 ) -> Image.Image:
+    # ControlNet 权重通常无 fp16 变体；基座 SD1.5 用 variant=fp16 以匹配本机缓存
     controlnet = ControlNetModel.from_pretrained(
         controlnet_id,
         torch_dtype=dtype,
         use_safetensors=True,
     )
 
-    pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        BASE_MODEL,
+    pipe_kwargs = dict(
         controlnet=controlnet,
         torch_dtype=dtype,
         use_safetensors=True,
         safety_checker=None,
+        requires_safety_checker=False,
+    )
+    if dtype == torch.float16:
+        pipe_kwargs["variant"] = "fp16"
+
+    pipe = StableDiffusionControlNetPipeline.from_pretrained(
+        BASE_MODEL,
+        **pipe_kwargs,
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 
@@ -118,8 +131,8 @@ def run_controlnet(
             image=control_image,
             width=TARGET_W,
             height=TARGET_H,
-            num_inference_steps=30,
-            guidance_scale=8.0,
+            num_inference_steps=NUM_INFERENCE_STEPS,
+            guidance_scale=GUIDANCE_SCALE,
             controlnet_conditioning_scale=conditioning_scale,
             control_guidance_start=0.0,
             control_guidance_end=1.0,
@@ -185,22 +198,20 @@ def main() -> None:
 
     print("运行 ControlNet Lineart…")
     lineart_result = run_controlnet(
-        "ControlNet-1-1-preview/control_v11p_sd15_lineart",
+        LINEART_CONTROLNET,
         lineart_control,
         OUT / "result_lineart.png",
         device=device,
         dtype=dtype,
-        conditioning_scale=1.20,
     )
 
     print("运行 ControlNet Scribble…")
     scribble_result = run_controlnet(
-        "lllyasviel/sd-controlnet-scribble",
+        SCRIBBLE_CONTROLNET,
         scribble_control,
         OUT / "result_scribble.png",
         device=device,
         dtype=dtype,
-        conditioning_scale=1.10,
     )
 
     fig = plt.figure(figsize=(18, 6))
